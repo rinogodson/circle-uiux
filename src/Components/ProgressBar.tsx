@@ -91,10 +91,6 @@ function ProgressBar({
 
       const clampedAngle = Math.max(startAng, Math.min(endAng, angDeg));
 
-      if (Math.abs(angDeg) > 120) {
-        return null;
-      }
-
       const neoProgress = mapRange(clampedAngle, startAng, endAng, 0, 100);
       return neoProgress;
     },
@@ -121,6 +117,10 @@ function ProgressBar({
 
   const currAng = mapRange(p, 0, 100, startAng, endAng);
 
+  const knobPos = polToCart(center, center, radius, currAng);
+  const knobSize = dragging ? 12 : 10;
+  const knobFill = dragging ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.2)";
+
   return (
     <div className="relative">
       <svg
@@ -129,8 +129,8 @@ function ProgressBar({
         height={size / 1.8}
         viewBox={`0 0 ${size} ${size / 1.8}`}
         className="overflow-visible touch-none"
-        onPointerDown={handleMouseDown}
         onPointerMove={handleMouseMove}
+        onPointerDown={handleMouseDown}
         onPointerUp={handleMouseUp}
       >
         <path
@@ -148,6 +148,11 @@ function ProgressBar({
           strokeWidth={stroke}
           strokeLinecap="round"
         />
+
+        <g transform={`translate(${knobPos.x}, ${knobPos.y})`}>
+          <circle r={knobSize} fill={knobFill} />
+          <circle r={8} fill="white" />
+        </g>
       </svg>
     </div>
   );
