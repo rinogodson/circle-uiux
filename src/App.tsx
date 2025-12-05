@@ -6,6 +6,7 @@ import {
   MdRepeat,
   MdSearch,
 } from "react-icons/md";
+import ProgressBar from "./Components/ProgressBar";
 
 const App = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -87,7 +88,15 @@ const CirclePad = () => {
   return (
     <div className="w-[80%] grid overflow-hidden grid-rows-[3.8fr_2.4fr_3.8fr] aspect-square bg-radial from-black to-black/30 rounded-full border-2 border-white/10">
       <div className="flex justify-center items-end">
-        <div className="font-[JetBrains_Mono] bg-white/2 mb-5 border border-white/10 text-md text-white/50 px-3 py-1 rounded-[9px]">
+        {/* todo */}
+        {/* <ProgressBar */}
+        {/*   start={-180} */}
+        {/*   end={0} */}
+        {/*   width={300} */}
+        {/*   onChange={() => {}} */}
+        {/*   stroke={20} */}
+        {/* /> */}
+        <div className="font-[JetBrains_Mono] bg-white/2 mb-5 border border-white/10 text-sm text-white/50 px-3 py-1 rounded-[9px]">
           0:40/2:34
         </div>
       </div>
