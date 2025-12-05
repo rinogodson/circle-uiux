@@ -94,10 +94,7 @@ const CirclePad = ({
 }) => {
   const cont = useRef<HTMLDivElement | null>(null);
 
-  const [containerWidth, setContainerWidth] = useState<number | undefined>(
-    undefined,
-    0,
-  );
+  const [containerWidth, setContainerWidth] = useState<number | undefined>(0);
 
   useEffect(() => {
     if (cont.current) {
