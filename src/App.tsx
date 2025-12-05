@@ -13,7 +13,7 @@ const App = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [progress, setProgress] = useState(35);
 
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState(true);
 
   // TODO: On user going non-fullscreen using back button, the button is not popping in
 
@@ -44,7 +44,20 @@ const App = () => {
     <div className="font-[Lexend] relative  bg-[#090909] z-0 sm:h-[800px] flex flex-col justify-between overflow-hidden items-center h-screen w-svw sm:w-auto sm:aspect-384/784 sm:rounded-4xl sm:border-3 border-white/30">
       <div className="absolute -z-1 w-full h-full">
         <div className="absolute h-full bg-[url(/song1.png)] w-full bg-cover bg-center" />
-        <div className="absolute h-full bg-linear-to-t from-black to-black/50 backdrop-blur-2xl w-full bg-cover bg-center" />
+        <motion.div
+          animate={{
+            "--alpha": playing ? 0.7 : 0.8,
+          }}
+          transition={{
+            duration: 0.3,
+            ease: "easeInOut",
+          }}
+          style={{
+            background:
+              "linear-gradient(to top, black, rgba(0, 0, 0, var(--alpha)))",
+          }}
+          className="absolute h-full backdrop-blur-2xl w-full bg-cover bg-center"
+        />
       </div>
 
       <div className="w-full h-fit mt-15 flex-col justify-center items-center gap-8 flex">
@@ -117,7 +130,7 @@ const CirclePad = ({
   return (
     <div
       ref={cont}
-      className="w-[80%] grid overflow-hidden grid-rows-[3.8fr_2.4fr_3.8fr] aspect-square bg-radial from-black to-black/30 rounded-full border-2 border-white/10"
+      className="w-[80%] grid overflow-hidden grid-rows-[3.8fr_2.4fr_3.8fr] aspect-square bg-radial from-black to-black/30 backdrop-brightness-150 rounded-full border-2 border-white/10"
     >
       <div className="flex justify-center relative items-end">
         <div className="absolute top-[15px]">
@@ -136,24 +149,28 @@ const CirclePad = ({
       </div>
       <div className="flex w-full justify-around items-center">
         <img src="/indicatorarrow.svg" className="opacity-8 h-[80%]" />
-        {/* <img src="/circle.svg" /> */}
-
         <motion.svg
           onClick={() => playCtx.setPlaying(!playCtx.playing)}
           viewBox="0 0 400 400"
-          className="w-20 aspect-square drop-shadow-[0_0_5px_#6001D7]"
+          className="w-20 aspect-square"
           xmlns="http://www.w3.org/2000/svg"
-          animate={{ scale: playCtx.playing ? 1 : 1 }}
+          animate={{
+            scale: playCtx.playing ? 1 : 0.9,
+            opacity: playCtx.playing ? 1 : 0.8,
+            filter: playCtx.playing
+              ? "drop-shadow(0 0 10px rgba(255,255,255,0.5))"
+              : "",
+          }}
           transition={{
             type: "spring",
             stiffness: 120,
-            damping: 10,
+            damping: 6,
             mass: 0.5,
           }}
         >
           <defs>
             <motion.radialGradient
-              id="purpleGlow"
+              id="greenGlow"
               cx="50%"
               cy="50%"
               r="50%"
@@ -161,8 +178,8 @@ const CirclePad = ({
               fy="50%"
             >
               <motion.stop
-                animate={{ offset: playCtx.playing ? "70%" : "55%" }}
-                stopColor="#B480F8"
+                animate={{ offset: playCtx.playing ? "70%" : "50%" }}
+                stopColor="#9c9c9c"
                 transition={{
                   type: "spring",
                   stiffness: 120,
@@ -170,7 +187,7 @@ const CirclePad = ({
                   mass: 0.5,
                 }}
               />
-              <stop offset="100%" stopColor="#F5D7FF" />
+              <stop offset="100%" stopColor="#d6d6d6" />
             </motion.radialGradient>
 
             <mask id="maskofhole">
@@ -199,7 +216,7 @@ const CirclePad = ({
               cy="200"
               rx="200"
               ry="200"
-              fill="url(#purpleGlow)"
+              fill="url(#greenGlow)"
               mask="url(#maskofhole)"
             />
           </g>
@@ -211,7 +228,24 @@ const CirclePad = ({
         />
       </div>
       <div className="relative flex justify-center p-2 items-start pt-2">
-        <img src="/arc.svg" className="h-full" />
+        <svg
+          viewBox="0 0 200 200"
+          className="w-full absolute bottom-0 pointer-events-none rotate-50"
+        >
+          <g>
+            <circle
+              cx="100"
+              cy="100"
+              r="70"
+              fill="none"
+              stroke="rgba(255,255,255,0.05)"
+              stroke-width="50"
+              pathLength="360"
+              stroke-dasharray="80 300"
+              strokeLinecap="round"
+            />
+          </g>
+        </svg>
         <div className="absolute w-full flex translate-y-1 justify-center items-center h-full text-4xl text-white/40 gap-7">
           <MdRepeat className="-translate-y-5" />
           <MdFavoriteBorder />

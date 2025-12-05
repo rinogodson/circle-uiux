@@ -130,8 +130,7 @@ function ProgressBar({
       <svg
         ref={svgRef}
         width={size}
-        height={size / 1.8}
-        viewBox={`0 0 ${size} ${size / 1.8}`}
+        height={size / 3.2}
         className="overflow-visible touch-none"
         onPointerMove={handleMouseMove}
         onPointerDown={handleMouseDown}
