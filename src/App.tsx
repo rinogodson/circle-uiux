@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   MdDownload,
   MdFavoriteBorder,
@@ -10,6 +10,7 @@ import ProgressBar from "./Components/ProgressBar";
 
 const App = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [progress, setProgress] = useState(35);
 
   // TODO: On user going non-fullscreen using back button, the button is not popping in
 
@@ -57,7 +58,7 @@ const App = () => {
 
       <div className="w-full h-full flex-col  justify-center items-center flex">
         <div className="h-full w-full justify-center items-center flex">
-          <CirclePad />
+          <CirclePad sP={setProgress} p={progress} />
         </div>
         <div className="flex justify-around text-white/50 h-20 items-center w-full">
           <MdHomeFilled className="text-3xl" />
@@ -84,17 +85,42 @@ const App = () => {
   );
 };
 
-const CirclePad = () => {
+const CirclePad = ({
+  sP,
+  p,
+}: {
+  sP: React.Dispatch<React.SetStateAction<number>>;
+  p: number;
+}) => {
+  const cont = useRef<HTMLDivElement | null>(null);
+
+  const [containerWidth, setContainerWidth] = useState<number | undefined>(
+    undefined,
+    0,
+  );
+
+  useEffect(() => {
+    if (cont.current) {
+      setContainerWidth(cont.current.offsetWidth);
+    }
+  }, []);
+
   return (
-    <div className="w-[80%] grid overflow-hidden grid-rows-[3.8fr_2.4fr_3.8fr] aspect-square bg-radial from-black to-black/30 rounded-full border-2 border-white/10">
-      <div className="flex justify-center items-end">
-        <ProgressBar
-          start={-180}
-          end={0}
-          width={300}
-          onChange={() => {}}
-          stroke={20}
-        />
+    <div
+      ref={cont}
+      className="w-[80%] grid overflow-hidden grid-rows-[3.8fr_2.4fr_3.8fr] aspect-square bg-radial from-black to-black/30 rounded-full border-2 border-white/10"
+    >
+      <div className="flex justify-center relative items-end">
+        <div className="absolute top-[15px]">
+          <ProgressBar
+            span={130}
+            size={Number(containerWidth) - 30}
+            stroke={10}
+            sP={sP}
+            p={p}
+          />
+        </div>
+
         <div className="font-[JetBrains_Mono] bg-white/2 mb-5 border border-white/10 text-sm text-white/50 px-3 py-1 rounded-[9px]">
           0:40/2:34
         </div>

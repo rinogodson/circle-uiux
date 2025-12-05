@@ -1,62 +1,156 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useCallback, useRef, useState } from "react";
+
+const describeTheSVGArc = (
+  // silly name yeahh!!
+  x: number,
+  y: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number,
+) => {
+  const start = polToCart(x, y, radius, endAngle);
+  const end = polToCart(x, y, radius, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+  return [
+    "M",
+    start.x,
+    start.y,
+    "A",
+    radius,
+    radius,
+    0,
+    largeArcFlag,
+    0,
+    end.x,
+    end.y,
+  ].join(" ");
+};
+
+const mapRange = (
+  value: number,
+  inMin: number,
+  inMax: number,
+  outMin: number,
+  outMax: number,
+) => {
+  return ((value - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
+};
+
+const polToCart = (
+  centerX: number,
+  centerY: number,
+  radius: number,
+  angle: number,
+) => {
+  const angleInRadians = ((angle - 90) * Math.PI) / 180;
+
+  return {
+    x: centerX + radius * Math.cos(angleInRadians),
+    y: centerY + radius * Math.sin(angleInRadians),
+  };
+};
+
 function ProgressBar({
-  width,
+  size,
   stroke,
-  start,
-  end,
-  onChange,
+  span,
+  sP,
+  p,
 }: {
-  width: number;
+  size: number;
   stroke: number;
-  start: number;
-  end: number;
-  onChange: () => void;
+  span: number;
+  sP: any;
+  p: number;
 }) {
-  const center = width / 2;
-  const radius = (width - stroke) / 2;
-  const totalAngle = end - start;
+  const center = size / 2;
+  const radius = (size - stroke) / 2;
 
-  const describeTheSVGArc = (
-    // silly name yeahh!!
-    x: number,
-    y: number,
-    radius: number,
-    startAngle: number,
-    endAngle: number,
-  ) => {
-    const start = polToCart(x, y, radius, endAngle);
-    const end = polToCart(x, y, radius, startAngle);
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+  const arcSpan = span;
+  const startAng = -arcSpan / 2; // -54
+  const endAng = arcSpan / 2; // 54
 
-    return [
-      "M",
-      start.x,
-      start.y,
-      "A",
-      radius,
-      radius,
-      0,
-      largeArcFlag,
-      0,
-      end.x,
-      end.y,
-    ].join(" ");
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  const [dragging, setDragging] = useState<boolean>(false);
+
+  const calculateProgress = useCallback(
+    (cX: number, cY: number) => {
+      if (!svgRef.current) return;
+      const rect = svgRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      const x = cX - centerX;
+      const y = cY - centerY;
+
+      let angDeg = Math.atan2(y, x) * (180 / Math.PI) + 90;
+      if (angDeg > 180) angDeg -= 360;
+
+      const clampedAngle = Math.max(startAng, Math.min(endAng, angDeg));
+
+      if (Math.abs(angDeg) > 120) {
+        return null;
+      }
+
+      const neoProgress = mapRange(clampedAngle, startAng, endAng, 0, 100);
+      return neoProgress;
+    },
+    [startAng, endAng],
+  );
+
+  const handleMouseDown = (e: React.PointerEvent<SVGElement>) => {
+    setDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const newProgress = calculateProgress(e.clientX, e.clientY);
+    if (newProgress !== null) sP(Number(newProgress));
   };
 
-  const polToCart = (
-    centerX: number,
-    centerY: number,
-    radius: number,
-    angle: number,
-  ) => {
-    const angleInRadians = ((angle - 90) * Math.PI) / 180;
-
-    return {
-      x: centerX + radius * Math.cos(angleInRadians),
-      y: centerY + radius * Math.sin(angleInRadians),
-    };
+  const handleMouseMove = (e: React.PointerEvent<SVGElement>) => {
+    if (!dragging) return;
+    const newProgress = calculateProgress(e.clientX, e.clientY);
+    if (newProgress !== null) sP(Number(newProgress));
   };
 
-  return <div></div>;
+  const handleMouseUp = (e: React.PointerEvent<SVGElement>) => {
+    setDragging(false);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
+  const currAng = mapRange(p, 0, 100, startAng, endAng);
+
+  return (
+    <div className="relative">
+      <svg
+        ref={svgRef}
+        width={size}
+        height={size / 1.8}
+        viewBox={`0 0 ${size} ${size / 1.8}`}
+        className="overflow-visible touch-none"
+        onPointerDown={handleMouseDown}
+        onPointerMove={handleMouseMove}
+        onPointerUp={handleMouseUp}
+      >
+        <path
+          d={describeTheSVGArc(center, center, radius, startAng, endAng)}
+          fill="none"
+          stroke="rgba(255,255,255,0.1)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+        />
+
+        <path
+          d={describeTheSVGArc(center, center, radius, startAng, currAng)}
+          fill="none"
+          stroke="rgba(255,255,255,0.6)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
 }
 
 export default ProgressBar;
