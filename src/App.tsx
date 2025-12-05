@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { MdHomeFilled, MdSearch } from "react-icons/md";
+import {
+  MdDownload,
+  MdFavoriteBorder,
+  MdHomeFilled,
+  MdRepeat,
+  MdSearch,
+} from "react-icons/md";
 
 const App = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -30,7 +36,7 @@ const App = () => {
   };
 
   return (
-    <div className="font-[Lexend] relative  bg-[#090909] z-0 sm:h-[90vh] flex flex-col justify-between overflow-hidden items-center h-screen w-svw sm:w-auto sm:aspect-8/16 sm:rounded-4xl sm:border border-white/10">
+    <div className="font-[Lexend] relative  bg-[#090909] z-0 sm:h-[800px] flex flex-col justify-between overflow-hidden items-center h-screen w-svw sm:w-auto sm:aspect-384/784 sm:rounded-4xl sm:border-3 border-white/30">
       <div className="absolute -z-1 w-full h-full">
         <div className="absolute h-full bg-[url(/song1.png)] w-full bg-cover bg-center" />
         <div className="absolute h-full bg-linear-to-t from-black to-black/50 backdrop-blur-2xl w-full bg-cover bg-center" />
@@ -48,8 +54,10 @@ const App = () => {
         </div>
       </div>
 
-      <div className="w-full h-fit flex-col  justify-center items-center flex">
-        <CirclePad />
+      <div className="w-full h-full flex-col  justify-center items-center flex">
+        <div className="h-full w-full justify-center items-center flex">
+          <CirclePad />
+        </div>
         <div className="flex justify-around text-white/50 h-20 items-center w-full">
           <MdHomeFilled className="text-3xl" />
           <div className="flex flex-col justify-center items-center text-sm">
@@ -78,9 +86,30 @@ const App = () => {
 const CirclePad = () => {
   return (
     <div className="w-[80%] grid overflow-hidden grid-rows-[3.8fr_2.4fr_3.8fr] aspect-square bg-radial from-black to-black/30 rounded-full border-2 border-white/10">
-      <div className="bg-red-400 border-y border-white"></div>
-      <div className="bg-red-400 border-y border-white"></div>
-      <div className="bg-red-400 border-y border-white"></div>
+      <div className="flex justify-center items-end">
+        <div className="font-[JetBrains_Mono] bg-white/2 mb-5 border border-white/10 text-md text-white/50 px-3 py-1 rounded-[9px]">
+          0:40/2:34
+        </div>
+      </div>
+      <div className="flex  justify-around items-center">
+        <img src="/indicatorarrow.svg" className="opacity-8 h-[80%]" />
+        <img
+          src="/circle.svg"
+          className="drop-shadow-[0_0_5px_#6001D7,0_0_50px_black]"
+        />
+        <img
+          src="/indicatorarrow.svg"
+          className="opacity-8 h-[80%] rotate-180"
+        />
+      </div>
+      <div className="relative flex justify-center p-2 items-start pt-2">
+        <img src="/arc.svg" className="h-full" />
+        <div className="absolute w-full flex translate-y-1 justify-center items-center h-full text-4xl text-white/40 gap-7">
+          <MdRepeat className="-translate-y-5" />
+          <MdFavoriteBorder />
+          <MdDownload className="-translate-y-5" />
+        </div>
+      </div>
     </div>
   );
 };
