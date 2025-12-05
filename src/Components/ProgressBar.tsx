@@ -81,7 +81,7 @@ function ProgressBar({
       if (!svgRef.current) return;
       const rect = svgRef.current.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
+      const centerY = rect.top + rect.width / 2;
 
       const x = cX - centerX;
       const y = cY - centerY;
@@ -90,6 +90,10 @@ function ProgressBar({
       if (angDeg > 180) angDeg -= 360;
 
       const clampedAngle = Math.max(startAng, Math.min(endAng, angDeg));
+
+      if (Math.abs(angDeg) > 90) {
+        return null;
+      }
 
       const neoProgress = mapRange(clampedAngle, startAng, endAng, 0, 100);
       return neoProgress;

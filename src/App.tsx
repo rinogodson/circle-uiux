@@ -12,6 +12,8 @@ const App = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [progress, setProgress] = useState(35);
 
+  const [playing, setPlaying] = useState(false);
+
   // TODO: On user going non-fullscreen using back button, the button is not popping in
 
   useEffect(() => {
@@ -58,7 +60,11 @@ const App = () => {
 
       <div className="w-full h-full flex-col  justify-center items-center flex">
         <div className="h-full w-full justify-center items-center flex">
-          <CirclePad sP={setProgress} p={progress} />
+          <CirclePad
+            playCtx={{ playing, setPlaying }}
+            sP={setProgress}
+            p={progress}
+          />
         </div>
         <div className="flex justify-around text-white/50 h-20 items-center w-full">
           <MdHomeFilled className="text-3xl" />
@@ -86,9 +92,14 @@ const App = () => {
 };
 
 const CirclePad = ({
+  playCtx,
   sP,
   p,
 }: {
+  playCtx: {
+    playing: boolean;
+    setPlaying: React.Dispatch<React.SetStateAction<boolean>>;
+  };
   sP: React.Dispatch<React.SetStateAction<number>>;
   p: number;
 }) => {
@@ -110,7 +121,7 @@ const CirclePad = ({
       <div className="flex justify-center relative items-end">
         <div className="absolute top-[15px]">
           <ProgressBar
-            span={130}
+            span={120}
             size={Number(containerWidth) - 30}
             stroke={10}
             sP={sP}
@@ -122,12 +133,46 @@ const CirclePad = ({
           0:40/2:34
         </div>
       </div>
-      <div className="flex  justify-around items-center">
+      <div className="flex w-full justify-around items-center">
         <img src="/indicatorarrow.svg" className="opacity-8 h-[80%]" />
-        <img
-          src="/circle.svg"
-          className="drop-shadow-[0_0_5px_#6001D7,0_0_50px_black]"
-        />
+        {/* <img src="/circle.svg" /> */}
+
+        <svg
+          onClick={() => playCtx.setPlaying(!playCtx.playing)}
+          viewBox="0 0 400 400"
+          className="w-20 aspect-square drop-shadow-[0_0_5px_#6001D7]"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <radialGradient
+              id="purpleGlow"
+              cx="50%"
+              cy="50%"
+              r="50%"
+              fx="50%"
+              fy="50%"
+            >
+              <stop
+                offset={playCtx.playing ? "85%" : "55%"}
+                stopColor="#B480F8"
+              />
+              <stop offset="100%" stopColor="#F5D7FF" />
+            </radialGradient>
+          </defs>
+
+          <g>
+            <ellipse
+              cx="200"
+              cy="200"
+              rx={playCtx.playing ? "170" : "140"}
+              ry={playCtx.playing ? "170" : "140"}
+              fill="none"
+              stroke="url(#purpleGlow)"
+              strokeWidth={playCtx.playing ? "60" : "120"}
+            />
+          </g>
+        </svg>
+
         <img
           src="/indicatorarrow.svg"
           className="opacity-8 h-[80%] rotate-180"
