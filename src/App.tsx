@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { motion } from "motion/react";
 import {
   MdDownload,
   MdFavoriteBorder,
@@ -137,14 +138,21 @@ const CirclePad = ({
         <img src="/indicatorarrow.svg" className="opacity-8 h-[80%]" />
         {/* <img src="/circle.svg" /> */}
 
-        <svg
+        <motion.svg
           onClick={() => playCtx.setPlaying(!playCtx.playing)}
           viewBox="0 0 400 400"
           className="w-20 aspect-square drop-shadow-[0_0_5px_#6001D7]"
           xmlns="http://www.w3.org/2000/svg"
+          animate={{ scale: playCtx.playing ? 1 : 1 }}
+          transition={{
+            type: "spring",
+            stiffness: 120,
+            damping: 10,
+            mass: 0.5,
+          }}
         >
           <defs>
-            <radialGradient
+            <motion.radialGradient
               id="purpleGlow"
               cx="50%"
               cy="50%"
@@ -152,26 +160,50 @@ const CirclePad = ({
               fx="50%"
               fy="50%"
             >
-              <stop
-                offset={playCtx.playing ? "85%" : "55%"}
+              <motion.stop
+                animate={{ offset: playCtx.playing ? "70%" : "55%" }}
                 stopColor="#B480F8"
+                transition={{
+                  type: "spring",
+                  stiffness: 120,
+                  damping: 7,
+                  mass: 0.5,
+                }}
               />
               <stop offset="100%" stopColor="#F5D7FF" />
-            </radialGradient>
+            </motion.radialGradient>
+
+            <mask id="maskofhole">
+              <ellipse cx="200" cy="200" rx="200" ry="200" fill="white" />
+              <motion.ellipse
+                cx="200"
+                cy="200"
+                animate={{
+                  rx: playCtx.playing ? 140 : 80,
+                  ry: playCtx.playing ? 140 : 80,
+                }}
+                fill="black"
+                transition={{
+                  type: "spring",
+                  stiffness: 120,
+                  damping: 7,
+                  mass: 0.5,
+                }}
+              />
+            </mask>
           </defs>
 
           <g>
             <ellipse
               cx="200"
               cy="200"
-              rx={playCtx.playing ? "170" : "140"}
-              ry={playCtx.playing ? "170" : "140"}
-              fill="none"
-              stroke="url(#purpleGlow)"
-              strokeWidth={playCtx.playing ? "60" : "120"}
+              rx="200"
+              ry="200"
+              fill="url(#purpleGlow)"
+              mask="url(#maskofhole)"
             />
           </g>
-        </svg>
+        </motion.svg>
 
         <img
           src="/indicatorarrow.svg"
