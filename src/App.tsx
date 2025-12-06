@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { animate, motion, useMotionValue, useTransform } from "motion/react";
 import {
   MdDownload,
   MdFavoriteBorder,
@@ -127,6 +127,23 @@ const CirclePad = ({
     }
   }, []);
 
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const maxDrag = 80;
+
+  const scaleX = useTransform(x, (v) => {
+    const stretch = Math.min(Math.abs(v) / maxDrag, 1);
+    return 1 + stretch * 0.25;
+  });
+
+  const scaleY = useTransform(y, (v) => {
+    const stretch = Math.min(Math.abs(v) / maxDrag, 1);
+    return 1 + stretch * 0.45;
+  });
+
+  const [isDragging, setIsDragging] = useState(false);
+
   return (
     <div
       ref={cont}
@@ -143,84 +160,120 @@ const CirclePad = ({
           />
         </div>
 
-        <div className="font-[JetBrains_Mono] bg-white/2 mb-5 border border-white/10 text-sm text-white/50 px-3 py-1 rounded-[9px]">
-          0:40/2:34
+        <div className="font-[JetBrains_Mono] bg-white/2 mb-8 border border-white/10 text-sm text-white/50 px-3 py-1 rounded-[9px]">
+          {Math.floor(p)}
         </div>
       </div>
       <div className="flex w-full justify-around items-center">
         <img src="/indicatorarrow.svg" className="opacity-8 h-[80%]" />
-        <motion.svg
-          onClick={() => playCtx.setPlaying(!playCtx.playing)}
-          viewBox="0 0 400 400"
-          className="w-20 aspect-square"
-          xmlns="http://www.w3.org/2000/svg"
-          animate={{
-            scale: playCtx.playing ? 1 : 0.9,
-            opacity: playCtx.playing ? 1 : 0.8,
-            filter: playCtx.playing
-              ? "drop-shadow(0 0 10px rgba(255,255,255,0.5))"
-              : "",
-          }}
-          transition={{
-            type: "spring",
-            stiffness: 120,
-            damping: 6,
-            mass: 0.5,
-          }}
-        >
-          <defs>
-            <motion.radialGradient
-              id="greenGlow"
-              cx="50%"
-              cy="50%"
-              r="50%"
-              fx="50%"
-              fy="50%"
-            >
-              <motion.stop
-                animate={{ offset: playCtx.playing ? "70%" : "50%" }}
-                stopColor="#9c9c9c"
-                transition={{
-                  type: "spring",
-                  stiffness: 120,
-                  damping: 7,
-                  mass: 0.5,
-                }}
-              />
-              <stop offset="100%" stopColor="#d6d6d6" />
-            </motion.radialGradient>
+        <div className="relative w-20 aspect-square flex justify-center items-center">
+          <motion.svg
+            viewBox="0 0 400 400"
+            className="z-1000 w-full h-full pointer-events-none"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{
+              x,
+              y,
+              scaleX,
+              scaleY,
+            }}
+            whileDrag={{ scaleX: 0.5, scaleY: 0.5 }}
+            animate={{
+              scale: playCtx.playing ? (isDragging ? 0.9 : 1) : 0.9,
+              opacity: playCtx.playing ? 1 : 0.8,
+              filter: playCtx.playing
+                ? "drop-shadow(0 0 10px rgba(255,255,255,0.5))"
+                : "",
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 120,
+              damping: 6,
+              mass: 0.5,
+            }}
+          >
+            <defs>
+              <motion.radialGradient
+                id="greenGlow"
+                cx="50%"
+                cy="50%"
+                r="50%"
+                fx="50%"
+                fy="50%"
+              >
+                <motion.stop
+                  animate={{ offset: playCtx.playing ? "70%" : "50%" }}
+                  stopColor="#9c9c9c"
+                  transition={{
+                    type: "spring",
+                    stiffness: 120,
+                    damping: 7,
+                    mass: 0.5,
+                  }}
+                />
+                <stop offset="100%" stopColor="#d6d6d6" />
+              </motion.radialGradient>
 
-            <mask id="maskofhole">
-              <ellipse cx="200" cy="200" rx="200" ry="200" fill="white" />
-              <motion.ellipse
+              <mask id="maskofhole">
+                <ellipse cx="200" cy="200" rx="200" ry="200" fill="white" />
+                <motion.ellipse
+                  cx="200"
+                  cy="200"
+                  animate={{
+                    rx: playCtx.playing ? 140 : 80,
+                    ry: playCtx.playing ? 140 : 80,
+                  }}
+                  fill="black"
+                  transition={{
+                    type: "spring",
+                    stiffness: 120,
+                    damping: 7,
+                    mass: 0.5,
+                  }}
+                />
+              </mask>
+            </defs>
+
+            <g>
+              <ellipse
                 cx="200"
                 cy="200"
-                animate={{
-                  rx: playCtx.playing ? 140 : 80,
-                  ry: playCtx.playing ? 140 : 80,
-                }}
-                fill="black"
-                transition={{
-                  type: "spring",
-                  stiffness: 120,
-                  damping: 7,
-                  mass: 0.5,
-                }}
+                rx="200"
+                ry="200"
+                fill="url(#greenGlow)"
+                mask="url(#maskofhole)"
+                onDrag={() => {}}
               />
-            </mask>
-          </defs>
-
-          <g>
-            <ellipse
-              cx="200"
-              cy="200"
-              rx="200"
-              ry="200"
-              fill="url(#greenGlow)"
-              mask="url(#maskofhole)"
-            />
-          </g>
-        </motion.svg>
+            </g>
+          </motion.svg>
+          <motion.div
+            className="absolute w-full h-full rounded-full cursor-grab active:cursor-grabbing"
+            style={{ x, y, scaleX, scaleY }}
+            drag
+            dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
+            dragElastic={0.7}
+            dragTransition={{
+              bounceStiffness: 700,
+              bounceDamping: 50,
+            }}
+            onDragStart={() => {
+              setIsDragging(true);
+            }}
+            onDragEnd={() => {
+              setTimeout(() => {
+                setIsDragging(false);
+              }, 100);
+              animate(x, 0, { type: "spring", stiffness: 500, damping: 25 });
+              animate(y, 0, { type: "spring", stiffness: 500, damping: 25 });
+            }}
+            onTap={() => {
+              if (!isDragging) {
+                playCtx.setPlaying(!playCtx.playing);
+              }
+            }}
+            whileTap={{ cursor: "grabbing" }}
+          />
+        </div>
 
         <img
           src="/indicatorarrow.svg"

@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
 
 const describeTheSVGArc = (
@@ -87,11 +89,12 @@ function ProgressBar({
       const y = cY - centerY;
 
       let angDeg = Math.atan2(y, x) * (180 / Math.PI) + 90;
+
       if (angDeg > 180) angDeg -= 360;
 
       const clampedAngle = Math.max(startAng, Math.min(endAng, angDeg));
 
-      if (Math.abs(angDeg) > 90) {
+      if (Math.abs(angDeg) > 135) {
         return null;
       }
 
@@ -104,8 +107,6 @@ function ProgressBar({
   const handleMouseDown = (e: React.PointerEvent<SVGElement>) => {
     setDragging(true);
     e.currentTarget.setPointerCapture(e.pointerId);
-    const newProgress = calculateProgress(e.clientX, e.clientY);
-    if (newProgress !== null) sP(Number(newProgress));
   };
 
   const handleMouseMove = (e: React.PointerEvent<SVGElement>) => {
@@ -115,27 +116,42 @@ function ProgressBar({
   };
 
   const handleMouseUp = (e: React.PointerEvent<SVGElement>) => {
+    if (!dragging) return;
     setDragging(false);
     e.currentTarget.releasePointerCapture(e.pointerId);
+    const newProgress = calculateProgress(e.clientX, e.clientY);
+    if (newProgress !== null) sP(Number(newProgress));
   };
 
   const currAng = mapRange(p, 0, 100, startAng, endAng);
 
   const knobPos = polToCart(center, center, radius, currAng);
-  const knobSize = dragging ? 12 : 10;
-  const knobFill = dragging ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.2)";
+  const knobSize = dragging ? stroke * 1.1 : stroke * 0.5;
 
   return (
     <div className="relative">
-      <svg
+      <motion.svg
         ref={svgRef}
         width={size}
         height={size / 3.2}
         className="overflow-visible touch-none"
-        onPointerMove={handleMouseMove}
-        onPointerDown={handleMouseDown}
-        onPointerUp={handleMouseUp}
       >
+        <defs>
+          <mask id="knobMask">
+            <motion.circle
+              animate={{ r: knobSize }}
+              transition={{ duration: 0.2 }}
+              fill={"white"}
+            />
+            <motion.circle
+              animate={{
+                r: dragging ? knobSize * 0.75 : knobSize * 0.5,
+              }}
+              transition={{ duration: 0.2 }}
+              fill="gray"
+            />
+          </mask>
+        </defs>
         <path
           d={describeTheSVGArc(center, center, radius, startAng, endAng)}
           fill="none"
@@ -153,10 +169,24 @@ function ProgressBar({
         />
 
         <g transform={`translate(${knobPos.x}, ${knobPos.y})`}>
-          <circle r={knobSize} fill={knobFill} />
-          <circle r={8} fill="white" />
+          <motion.circle
+            animate={{ r: knobSize }}
+            transition={{ duration: 0.2 }}
+            fill={dragging ? "#fbfbfb" : "white"}
+            mask={"url(#knobMask)"}
+          />
         </g>
-      </svg>
+        <path
+          d={describeTheSVGArc(center, center, radius, startAng, endAng)}
+          fill="none"
+          stroke="transparent"
+          strokeWidth={stroke * 2.5}
+          strokeLinecap="round"
+          onPointerMove={handleMouseMove}
+          onPointerDown={handleMouseDown}
+          onPointerUp={handleMouseUp}
+        />
+      </motion.svg>
     </div>
   );
 }
