@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   animate,
+  AnimatePresence,
   motion,
   useMotionValue,
   useMotionValueEvent,
@@ -14,6 +15,8 @@ import {
   MdSearch,
 } from "react-icons/md";
 import ProgressBar from "./Components/ProgressBar";
+import Queue from "./Components/Queue";
+import Marquee from "./Components/Marquee";
 
 const vibrate = (arr: number[]) => {
   if ("vibrate" in navigator) {
@@ -21,9 +24,17 @@ const vibrate = (arr: number[]) => {
   }
 };
 
+const songCtx = {
+  image:
+    "https://c.saavncdn.com/943/The-Way-That-Lovers-Do-English-2022-20220517094947-500x500.jpg",
+  name: "Co2",
+  artist: "Prateek Kuhad",
+};
+
 const App = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [progress, setProgress] = useState(35);
+  const [showQueue, setShowQueue] = useState(false);
 
   const [playing, setPlaying] = useState(true);
 
@@ -54,8 +65,18 @@ const App = () => {
 
   return (
     <div className="font-[Lexend] relative  bg-[#090909] z-0 sm:h-[800px] flex flex-col justify-between overflow-hidden items-center h-screen w-svw sm:w-auto sm:aspect-384/784 sm:rounded-4xl sm:border-3 border-white/30">
+      <AnimatePresence mode="sync">
+        {showQueue && <Queue sQ={setShowQueue} />}
+      </AnimatePresence>
       <div className="absolute -z-1 w-full h-full">
-        <div className="absolute h-full bg-[url(/song1.png)] w-full bg-cover bg-center" />
+        <div
+          style={{
+            background: `url(${songCtx.image})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+          className="absolute h-full w-full"
+        />
         <motion.div
           initial={{
             "--alpha": 0,
@@ -75,29 +96,38 @@ const App = () => {
         />
       </div>
 
-      <div className="w-full h-fit mt-15 flex-col justify-center items-center gap-8 flex">
+      <div
+        style={{ scale: showQueue ? 0.9 : 1 }}
+        className="transition-all duration-200 w-full h-fit mt-15 flex-col justify-center items-center gap-8 flex"
+      >
         <img
-          src="/song1.png"
+          src={songCtx.image}
           className="w-[60%] aspect-square border border-white/6 rounded-[15px] shadow-[0_4px_100px_black]"
         />
-
-        <div className="flex justify-center items-center flex-col">
-          <p className="text-xl">Somebody That I Used To Know</p>
-          <p className="text-white/70">Gotye</p>
+        <div className="flex w-full max-w-[85%] justify-center text-center items-center flex-col overflow-hidden">
+          <Marquee className="text-xl font-bold">{songCtx.name}</Marquee>
+          <Marquee className="text-white/70 mt-1">{songCtx.artist}</Marquee>
         </div>
       </div>
 
-      <div className="w-full h-full flex-col  justify-center items-center flex">
+      <div
+        style={{ scale: showQueue ? 0.9 : 1 }}
+        className="transition-all duration-200 origin-top w-full h-full flex-col  justify-center items-center flex"
+      >
         <div className="h-full w-full justify-center items-center flex">
           <CirclePad
             playCtx={{ playing, setPlaying }}
             sP={setProgress}
             p={progress}
+            sQ={setShowQueue}
           />
         </div>
         <div className="flex justify-around text-white/50 h-20 items-center w-full">
           <MdHomeFilled className="text-3xl" />
-          <div className="flex flex-col justify-center items-center text-sm">
+          <div
+            onClick={() => setShowQueue(!showQueue)}
+            className="flex flex-col justify-center text-center items-center text-sm"
+          >
             <span className="text-white/30">Next Up:</span>
             <span className="text-white/50">Kesariya (Lofi Flip)</span>
           </div>
@@ -123,6 +153,7 @@ const App = () => {
 const CirclePad = ({
   playCtx,
   sP,
+  sQ,
   p,
 }: {
   playCtx: {
@@ -130,6 +161,7 @@ const CirclePad = ({
     setPlaying: React.Dispatch<React.SetStateAction<boolean>>;
   };
   sP: React.Dispatch<React.SetStateAction<number>>;
+  sQ: React.Dispatch<React.SetStateAction<boolean>>;
   p: number;
 }) => {
   const cont = useRef<HTMLDivElement | null>(null);
@@ -141,21 +173,6 @@ const CirclePad = ({
       setContainerWidth(cont.current.offsetWidth);
     }
   }, []);
-
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  const maxDrag = 80;
-
-  const scaleX = useTransform(x, (v) => {
-    const stretch = Math.min(Math.abs(v) / maxDrag, 1);
-    return 1 + stretch * 0.25;
-  });
-
-  const scaleY = useTransform(y, (v) => {
-    const stretch = Math.min(Math.abs(v) / maxDrag, 1);
-    return 1 + stretch * 0.45;
-  });
 
   const [levers, setLevers] = useState([false, false, false, false]);
   const [fired_levers, setfired_Levers] = useState([
@@ -172,10 +189,8 @@ const CirclePad = ({
     const indexMap = {
       next: 0,
       back: 1,
-      seekForward: 2,
-      seekBackward: 3,
-      volumeUp: 4,
-      volumeDown: 5,
+      volumeUp: 2,
+      volumeDown: 3,
     } as const;
 
     const idx = indexMap[lev];
@@ -191,8 +206,24 @@ const CirclePad = ({
   // 3 -> volumeUp
   // 4 -> volumeDown
 
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const maxDrag = 80;
+
+  const scaleX = useTransform(x, (v) => {
+    const stretch = Math.min(Math.abs(v) / maxDrag, 1);
+    return 1 + stretch * 0.25;
+  });
+
+  const scaleY = useTransform(y, (v) => {
+    const stretch = Math.min(Math.abs(v) / maxDrag, 1);
+    return 1 + stretch * 0.45;
+  });
+
+  const LIMIT = 35;
   useMotionValueEvent(x, "change", (vx) => {
-    if (vx > 69 && !fired_levers[0]) {
+    if (vx > 69 && !fired_levers[0] && Math.abs(y.get()) < LIMIT) {
       const newFiredLevs = structuredClone(fired_levers);
       newFiredLevs[0] = true;
       setfired_Levers(newFiredLevs);
@@ -206,7 +237,7 @@ const CirclePad = ({
   });
 
   useMotionValueEvent(x, "change", (vx) => {
-    if (vx < -69 && !fired_levers[1]) {
+    if (vx < -69 && !fired_levers[1] && Math.abs(y.get()) < LIMIT) {
       const newFiredLevs = structuredClone(fired_levers);
       newFiredLevs[1] = true;
       setfired_Levers(newFiredLevs);
@@ -216,6 +247,20 @@ const CirclePad = ({
       newFiredLevs[1] = false;
       setfired_Levers(newFiredLevs);
       pullTheLever("back", false);
+    }
+  });
+
+  useMotionValueEvent(y, "change", (vy) => {
+    if (vy < -69 && !fired_levers[2] && Math.abs(x.get()) < LIMIT) {
+      const newFiredLevs = structuredClone(fired_levers);
+      newFiredLevs[2] = true;
+      setfired_Levers(newFiredLevs);
+      pullTheLever("volumeUp", true);
+    } else if (vy > -69 && fired_levers[2]) {
+      const newFiredLevs = structuredClone(fired_levers);
+      newFiredLevs[2] = false;
+      setfired_Levers(newFiredLevs);
+      pullTheLever("volumeUp", false);
     }
   });
 
@@ -237,14 +282,21 @@ const CirclePad = ({
 
       timerRef.current = setTimeout(() => {
         isHoldRef.current = true;
-
         intervalRef.current = setInterval(() => {
-          if (activeIndex === 0) console.log("going forward +10");
-          else if (activeIndex === 1) console.log("going backward -10");
-        }, 500);
+          if (activeIndex === 0) {
+            console.log("going forward +10");
+          } else if (activeIndex === 1) {
+            console.log("going backward -10");
+          } else if (activeIndex === 2) {
+            console.log("volume up by +15");
+          }
+        }, 300);
       }, 200);
     } else {
       if (!isHoldRef.current && lastActiveLever.current) {
+        if (lastActiveLever.current === "volumeUp") {
+          sQ(true);
+        }
         console.log(`fn running: ${lastActiveLever.current}`);
       }
     }
@@ -252,7 +304,7 @@ const CirclePad = ({
       if (timerRef.current) clearTimeout(timerRef.current);
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [levers]);
+  }, [levers, sQ]);
 
   const [isDragging, setIsDragging] = useState(false);
 
@@ -272,7 +324,7 @@ const CirclePad = ({
           />
         </div>
 
-        <div className="font-[JetBrains_Mono] bg-white/2 mb-8 border border-white/10 text-sm text-white/50 px-3 py-1 rounded-[9px]">
+        <div className="font-[JetBrains_Mono] bg-white/2 mb-8 border border-white/10 text-sm text-white/50 px-2 rounded-[9px]">
           {Math.floor(p)}
         </div>
       </div>
@@ -371,7 +423,7 @@ const CirclePad = ({
             className="absolute w-full h-full rounded-full"
             style={{ x, y, scaleX, scaleY }}
             drag
-            dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
+            dragConstraints={cont}
             dragElastic={0.7}
             dragTransition={{
               bounceStiffness: 700,
