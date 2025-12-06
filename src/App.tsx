@@ -151,30 +151,15 @@ const CirclePad = ({
     return 1 + stretch * 0.45;
   });
 
-  const [levers, setLevers] = useState([
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-  ]);
+  const [levers, setLevers] = useState([false, false, false, false]);
   const [fired_levers, setfired_Levers] = useState([
-    false,
-    false,
     false,
     false,
     false,
     false,
   ]);
   const pullTheLever = (
-    lev:
-      | "next"
-      | "back"
-      | "seekForward"
-      | "seekBackward"
-      | "volumeUp"
-      | "volumeDown",
+    lev: "next" | "back" | "volumeUp" | "volumeDown",
     val?: boolean,
   ) => {
     const newLevs = structuredClone(levers);
@@ -197,21 +182,20 @@ const CirclePad = ({
   // THIS IS A BAD ARCHITECTURE, but i love this... :)
   // 1 -> next
   // 2 -> back
-  // 3 -> seekForward
-  // 4 -> seekBackward
-  // 5 -> volumeUp
-  // 6 -> volumeDown
+  // 3 -> volumeUp
+  // 4 -> volumeDown
 
   useMotionValueEvent(x, "change", (vx) => {
     if (vx > 69 && !fired_levers[0]) {
       const newFiredLevs = structuredClone(fired_levers);
       newFiredLevs[0] = true;
       setfired_Levers(newFiredLevs);
-      pullTheLever("next");
+      pullTheLever("next", true);
     } else if (vx < 69 && fired_levers[0]) {
       const newFiredLevs = structuredClone(fired_levers);
       newFiredLevs[0] = false;
       setfired_Levers(newFiredLevs);
+      pullTheLever("next", false);
     }
   });
 
@@ -220,16 +204,54 @@ const CirclePad = ({
       const newFiredLevs = structuredClone(fired_levers);
       newFiredLevs[1] = true;
       setfired_Levers(newFiredLevs);
-      pullTheLever("back");
+      pullTheLever("back", true);
     } else if (vx > -69 && fired_levers[1]) {
       const newFiredLevs = structuredClone(fired_levers);
       newFiredLevs[1] = false;
       setfired_Levers(newFiredLevs);
+      pullTheLever("back", false);
     }
   });
 
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const lastActiveLever = useRef<string | null>(null);
+  const isHoldRef = useRef(false);
+
+  useEffect(() => {
+    const leverNames = ["next", "back", "volumeUp", "volumeDown"];
+
+    const activeIndex = levers.findIndex((l) => l === true);
+
+    if (activeIndex !== -1) {
+      lastActiveLever.current = leverNames[activeIndex];
+      isHoldRef.current = false;
+
+      timerRef.current = setTimeout(() => {
+        isHoldRef.current = true;
+
+        intervalRef.current = setInterval(() => {
+          if (activeIndex === 0) console.log("going forward +10");
+          else if (activeIndex === 1) console.log("going backward -10");
+        }, 500);
+      }, 200);
+    } else {
+      if (!isHoldRef.current && lastActiveLever.current) {
+        console.log(`fn running: ${lastActiveLever.current}`);
+      }
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [levers]);
+
+  const startTime = useRef<number>(0);
+
   useEffect(() => {
     window.navigator.vibrate([40]);
+    startTime.current = Date.now();
   }, [levers]);
 
   const [isDragging, setIsDragging] = useState(false);
@@ -346,7 +368,7 @@ const CirclePad = ({
             </g>
           </motion.svg>
           <motion.div
-            className="absolute w-full h-full rounded-full cursor-grab active:cursor-grabbing"
+            className="absolute w-full h-full rounded-full"
             style={{ x, y, scaleX, scaleY }}
             drag
             dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
@@ -360,6 +382,10 @@ const CirclePad = ({
               window.navigator.vibrate([30, 30]);
             }}
             onDragEnd={() => {
+              let elapsedTime = 0;
+              elapsedTime = Date.now() - startTime.current;
+              startTime.current = 0;
+              console.log("elapsed time:", elapsedTime);
               setTimeout(() => {
                 setIsDragging(false);
               }, 100);
@@ -372,7 +398,6 @@ const CirclePad = ({
                 window.navigator.vibrate([30, 30]);
               }
             }}
-            whileTap={{ cursor: "grabbing" }}
           />
         </div>
 
