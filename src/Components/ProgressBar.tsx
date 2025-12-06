@@ -105,6 +105,7 @@ function ProgressBar({
   );
 
   const handleMouseDown = (e: React.PointerEvent<SVGElement>) => {
+    window.navigator.vibrate([40]);
     setDragging(true);
     e.currentTarget.setPointerCapture(e.pointerId);
   };
@@ -118,6 +119,7 @@ function ProgressBar({
   const handleMouseUp = (e: React.PointerEvent<SVGElement>) => {
     if (!dragging) return;
     setDragging(false);
+    window.navigator.vibrate([50]);
     e.currentTarget.releasePointerCapture(e.pointerId);
     const newProgress = calculateProgress(e.clientX, e.clientY);
     if (newProgress !== null) sP(Number(newProgress));

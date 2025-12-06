@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { animate, motion, useMotionValue, useTransform } from "motion/react";
+import {
+  animate,
+  motion,
+  useMotionValue,
+  useMotionValueEvent,
+  useTransform,
+} from "motion/react";
 import {
   MdDownload,
   MdFavoriteBorder,
@@ -45,6 +51,9 @@ const App = () => {
       <div className="absolute -z-1 w-full h-full">
         <div className="absolute h-full bg-[url(/song1.png)] w-full bg-cover bg-center" />
         <motion.div
+          initial={{
+            "--alpha": 0,
+          }}
           animate={{
             "--alpha": playing ? 0.7 : 0.8,
           }}
@@ -142,6 +151,87 @@ const CirclePad = ({
     return 1 + stretch * 0.45;
   });
 
+  const [levers, setLevers] = useState([
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+  ]);
+  const [fired_levers, setfired_Levers] = useState([
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+  ]);
+  const pullTheLever = (
+    lev:
+      | "next"
+      | "back"
+      | "seekForward"
+      | "seekBackward"
+      | "volumeUp"
+      | "volumeDown",
+    val?: boolean,
+  ) => {
+    const newLevs = structuredClone(levers);
+    const indexMap = {
+      next: 0,
+      back: 1,
+      seekForward: 2,
+      seekBackward: 3,
+      volumeUp: 4,
+      volumeDown: 5,
+    } as const;
+
+    const idx = indexMap[lev];
+
+    if (val != null) newLevs[idx] = val;
+    else newLevs[idx] = !newLevs[idx];
+
+    setLevers(newLevs);
+  };
+  // THIS IS A BAD ARCHITECTURE, but i love this... :)
+  // 1 -> next
+  // 2 -> back
+  // 3 -> seekForward
+  // 4 -> seekBackward
+  // 5 -> volumeUp
+  // 6 -> volumeDown
+
+  useMotionValueEvent(x, "change", (vx) => {
+    if (vx > 69 && !fired_levers[0]) {
+      const newFiredLevs = structuredClone(fired_levers);
+      newFiredLevs[0] = true;
+      setfired_Levers(newFiredLevs);
+      pullTheLever("next");
+    } else if (vx < 69 && fired_levers[0]) {
+      const newFiredLevs = structuredClone(fired_levers);
+      newFiredLevs[0] = false;
+      setfired_Levers(newFiredLevs);
+    }
+  });
+
+  useMotionValueEvent(x, "change", (vx) => {
+    if (vx < -69 && !fired_levers[1]) {
+      const newFiredLevs = structuredClone(fired_levers);
+      newFiredLevs[1] = true;
+      setfired_Levers(newFiredLevs);
+      pullTheLever("back");
+    } else if (vx > -69 && fired_levers[1]) {
+      const newFiredLevs = structuredClone(fired_levers);
+      newFiredLevs[1] = false;
+      setfired_Levers(newFiredLevs);
+    }
+  });
+
+  useEffect(() => {
+    window.navigator.vibrate([40]);
+  }, [levers]);
+
   const [isDragging, setIsDragging] = useState(false);
 
   return (
@@ -178,12 +268,17 @@ const CirclePad = ({
               scaleY,
             }}
             whileDrag={{ scaleX: 0.5, scaleY: 0.5 }}
+            initial={{
+              scale: 0,
+              opacity: 0,
+              filter: "drop-shadow(0 0 10px rgba(255,255,255,0))",
+            }}
             animate={{
               scale: playCtx.playing ? (isDragging ? 0.9 : 1) : 0.9,
               opacity: playCtx.playing ? 1 : 0.8,
               filter: playCtx.playing
                 ? "drop-shadow(0 0 10px rgba(255,255,255,0.5))"
-                : "",
+                : "drop-shadow(0 0 10px rgba(255,255,255,0))",
             }}
             transition={{
               type: "spring",
@@ -219,6 +314,10 @@ const CirclePad = ({
                 <motion.ellipse
                   cx="200"
                   cy="200"
+                  initial={{
+                    rx: 0,
+                    ry: 0,
+                  }}
                   animate={{
                     rx: playCtx.playing ? 140 : 80,
                     ry: playCtx.playing ? 140 : 80,
@@ -258,6 +357,7 @@ const CirclePad = ({
             }}
             onDragStart={() => {
               setIsDragging(true);
+              window.navigator.vibrate([30, 30]);
             }}
             onDragEnd={() => {
               setTimeout(() => {
@@ -269,6 +369,7 @@ const CirclePad = ({
             onTap={() => {
               if (!isDragging) {
                 playCtx.setPlaying(!playCtx.playing);
+                window.navigator.vibrate([30, 30]);
               }
             }}
             whileTap={{ cursor: "grabbing" }}
@@ -292,9 +393,9 @@ const CirclePad = ({
               r="70"
               fill="none"
               stroke="rgba(255,255,255,0.05)"
-              stroke-width="50"
+              strokeWidth="50"
               pathLength="360"
-              stroke-dasharray="80 300"
+              strokeDasharray="80 300"
               strokeLinecap="round"
             />
           </g>
