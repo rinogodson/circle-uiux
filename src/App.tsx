@@ -15,6 +15,12 @@ import {
 } from "react-icons/md";
 import ProgressBar from "./Components/ProgressBar";
 
+const vibrate = (arr: number[]) => {
+  if ("vibrate" in navigator) {
+    navigator.vibrate(arr);
+  }
+};
+
 const App = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [progress, setProgress] = useState(35);
@@ -220,6 +226,7 @@ const CirclePad = ({
   const isHoldRef = useRef(false);
 
   useEffect(() => {
+    vibrate([40]);
     const leverNames = ["next", "back", "volumeUp", "volumeDown"];
 
     const activeIndex = levers.findIndex((l) => l === true);
@@ -245,13 +252,6 @@ const CirclePad = ({
       if (timerRef.current) clearTimeout(timerRef.current);
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [levers]);
-
-  const startTime = useRef<number>(0);
-
-  useEffect(() => {
-    window.navigator.vibrate([40]);
-    startTime.current = Date.now();
   }, [levers]);
 
   const [isDragging, setIsDragging] = useState(false);
@@ -379,13 +379,9 @@ const CirclePad = ({
             }}
             onDragStart={() => {
               setIsDragging(true);
-              window.navigator.vibrate([30, 30]);
+              vibrate([30, 30]);
             }}
             onDragEnd={() => {
-              let elapsedTime = 0;
-              elapsedTime = Date.now() - startTime.current;
-              startTime.current = 0;
-              console.log("elapsed time:", elapsedTime);
               setTimeout(() => {
                 setIsDragging(false);
               }, 100);
@@ -395,7 +391,7 @@ const CirclePad = ({
             onTap={() => {
               if (!isDragging) {
                 playCtx.setPlaying(!playCtx.playing);
-                window.navigator.vibrate([30, 30]);
+                vibrate([30, 30]);
               }
             }}
           />
