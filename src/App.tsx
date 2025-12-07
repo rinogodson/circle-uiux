@@ -485,7 +485,7 @@ const CirclePad = ({
         } else if (lastActiveLever.current === "volumeUp") {
           c.setCtx("volume", Math.min(c.ctx.volume + 15, 100));
         } else if (lastActiveLever.current === "volumeDown") {
-          c.setCtx("volume", Math.min(c.ctx.volume - 15, 100));
+          c.setCtx("volume", Math.max(c.ctx.volume - 15, 0));
         }
 
         console.log(lastActiveLever.current);
