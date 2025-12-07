@@ -1,7 +1,16 @@
 import { motion } from "motion/react";
 import { MdClose, MdQueueMusic } from "react-icons/md";
+import type ctxSchema from "../Hooks/schemaAndData";
 
-function Queue({ sQ }: { sQ: React.Dispatch<React.SetStateAction<boolean>> }) {
+function Queue({
+  sQ,
+  c,
+}: {
+  sQ: React.Dispatch<React.SetStateAction<boolean>>;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  c: { ctx: typeof ctxSchema; setCtx: any };
+}) {
   return (
     <motion.div
       initial={{
@@ -18,7 +27,7 @@ function Queue({ sQ }: { sQ: React.Dispatch<React.SetStateAction<boolean>> }) {
         background: "rgba(0, 0, 0, 0)",
       }}
       transition={{ duration: 0.1 }}
-      className="flex justify-center items-end w-full h-full absolute z-1000"
+      className="flex justify-center items-end w-full h-full absolute z-100"
       onClick={() => {
         sQ(false);
       }}
@@ -42,6 +51,30 @@ function Queue({ sQ }: { sQ: React.Dispatch<React.SetStateAction<boolean>> }) {
           <MdQueueMusic className="text-2xl" />
           QUEUE
         </div>
+        {c.ctx.songs.map((item, i) => {
+          return (
+            <div
+              onClick={() => c.setCtx("currentSong", i)}
+              className="h-20 w-full relative"
+            >
+              <div
+                style={{
+                  backgroundImage: `url(${item.image})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "bottom",
+                }}
+                className="absolute w-full h-full"
+              ></div>
+              <div className="w-full h-full bg-linear-to-b backdrop-blur-xl flex justify-start items-center  from-black to-black/50 absolute">
+                <img src={item.image} className="h-9/10 aspect-square" />
+                <div>
+                  <p>{item.name}</p>
+                  <p>{item.artist}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </motion.div>
       <motion.div
         initial={{ scale: 0, rotate: "90deg", opacity: 0, translateY: "100%" }}

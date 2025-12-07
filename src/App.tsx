@@ -18,29 +18,74 @@ import ProgressBar from "./Components/ProgressBar";
 import Queue from "./Components/Queue";
 import Marquee from "./Components/Marquee";
 
+import useProvider from "./Hooks/CtxProvider";
+import type ctxSchema from "./Hooks/schemaAndData";
+
 const vibrate = (arr: number[]) => {
   if ("vibrate" in navigator) {
     navigator.vibrate(arr);
   }
 };
 
-const songCtx = {
-  image:
-    "https://c.saavncdn.com/943/The-Way-That-Lovers-Do-English-2022-20220517094947-500x500.jpg",
-  name: "Co2",
-  artist: "Prateek Kuhad",
+const numberToFormattedTime = (secs: number) => {
+  if (Number.isNaN(secs)) return "-";
+  const minutes = Math.floor(secs / 60);
+  const seconds = secs % 60;
+  const paddedMinutes = String(minutes).padStart(2, "0");
+  const paddedSeconds = String(seconds).padStart(2, "0");
+  return `${paddedMinutes}:${paddedSeconds}`;
 };
 
 const App = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [progress, setProgress] = useState(35);
+  const [progress, setProgress] = useState(0);
   const [showQueue, setShowQueue] = useState(false);
 
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false);
+
+  const { ctx, setCtx } = useProvider();
 
   // TODO: On user going non-fullscreen using back button, the button is not popping in
 
+  const isAudioUpdate = useRef(false);
+
+  const musicPlayer = useRef<HTMLAudioElement>(null);
+
   useEffect(() => {
+    if (!musicPlayer.current) return;
+
+    if (isAudioUpdate.current) {
+      isAudioUpdate.current = false;
+      return;
+    }
+    if (musicPlayer.current.duration) {
+      musicPlayer.current.currentTime =
+        (musicPlayer.current.duration * progress) / 100;
+      if (musicPlayer.current.paused) musicPlayer.current.play();
+    }
+  }, [progress]);
+
+  useEffect(() => {
+    musicPlayer.current = new Audio();
+
+    const handleTimeUpdate = () => {
+      if (musicPlayer.current && musicPlayer.current.duration) {
+        isAudioUpdate.current = true;
+        setProgress(
+          (musicPlayer.current.currentTime / musicPlayer.current.duration) *
+            100,
+        );
+      }
+    };
+
+    const handlePlay = () => setPlaying(true);
+    const handlePause = () => setPlaying(false);
+
+    musicPlayer.current.addEventListener("timeupdate", handleTimeUpdate);
+    musicPlayer.current.addEventListener("play", handlePlay);
+    musicPlayer.current.addEventListener("pause", handlePause);
+    musicPlayer.current.addEventListener("ended", handlePause);
+
     const handlerfn = () => {
       if (!document.fullscreenElement) {
         setIsFullScreen(true);
@@ -48,8 +93,30 @@ const App = () => {
     };
     window.addEventListener("popstate", handlerfn);
 
-    return () => window.removeEventListener("popstate", handlerfn);
+    return () => {
+      window.removeEventListener("popstate", handlerfn);
+      if (musicPlayer.current) {
+        musicPlayer.current.removeEventListener("timeupdate", handleTimeUpdate);
+        musicPlayer.current.removeEventListener("play", handlePlay);
+        musicPlayer.current.removeEventListener("pause", handlePause);
+        musicPlayer.current.removeEventListener("ended", handlePause);
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    if (!musicPlayer.current) return;
+    musicPlayer.current.pause();
+    musicPlayer.current.src = ctx.songs[ctx.currentSong].song;
+    musicPlayer.current.play();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctx.currentSong]);
+
+  useEffect(() => {
+    if (!musicPlayer.current) return;
+    if (playing) musicPlayer.current.play();
+    else musicPlayer.current.pause();
+  }, [playing]);
 
   const handleFullScreen = () => {
     if (!document.fullscreenElement) {
@@ -63,17 +130,56 @@ const App = () => {
     }
   };
 
+  const [showVolume, setShowVolume] = useState(false);
+  const renderPassed = useRef(true);
+
+  useEffect(() => {
+    let id = 0;
+    if (renderPassed.current) {
+      renderPassed.current = false;
+    } else {
+      setShowVolume(true);
+      id = setTimeout(() => {
+        setShowVolume(false);
+      }, 2000);
+    }
+    return () => {
+      clearTimeout(id);
+    };
+  }, [ctx.volume]);
+
   return (
     <div className="font-[Lexend] relative  bg-[#090909] z-0 sm:h-[800px] flex flex-col justify-between overflow-hidden items-center h-screen w-svw sm:w-auto sm:aspect-384/784 sm:rounded-4xl sm:border-3 border-white/30">
       <AnimatePresence mode="sync">
-        {showQueue && <Queue sQ={setShowQueue} />}
+        {showQueue && <Queue c={{ ctx, setCtx }} sQ={setShowQueue} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showVolume && (
+          <motion.div
+            className="h-40 z-1000 w-2 bg-white/20 flex items-end overflow-hidden absolute left-3 rounded-full top-[20%]"
+            initial={{ translateX: "-300%" }}
+            animate={{ translateX: 0 }}
+            exit={{ translateX: "-300%" }}
+          >
+            <motion.div
+              animate={{ height: ctx.volume + "%" }}
+              transition={{ duration: 0.1, type: "tween", ease: "linear" }}
+              className="bg-white/90 rounded-t-full w-full"
+            />
+          </motion.div>
+        )}
       </AnimatePresence>
       <div className="absolute -z-1 w-full h-full">
-        <div
+        <motion.div
+          key={ctx.songs[ctx.currentSong].image}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           style={{
-            background: `url(${songCtx.image})`,
+            backgroundImage: `url(${ctx.songs[ctx.currentSong].image})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
           }}
           className="absolute h-full w-full"
         />
@@ -100,14 +206,34 @@ const App = () => {
         style={{ scale: showQueue ? 0.9 : 1 }}
         className="transition-all duration-200 w-full h-fit mt-15 flex-col justify-center items-center gap-8 flex"
       >
-        <img
-          src={songCtx.image}
-          className="w-[60%] aspect-square border border-white/6 rounded-[15px] shadow-[0_4px_100px_black]"
-        />
-        <div className="flex w-full max-w-[85%] justify-center text-center items-center flex-col overflow-hidden">
-          <Marquee className="text-xl font-bold">{songCtx.name}</Marquee>
-          <Marquee className="text-white/70 mt-1">{songCtx.artist}</Marquee>
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={ctx.songs[ctx.currentSong].image}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.1 }}
+            src={ctx.songs[ctx.currentSong].image}
+            className="w-[60%] aspect-square border border-white/6 rounded-[15px] shadow-[0_4px_100px_black]"
+          />
+        </AnimatePresence>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={ctx.songs[ctx.currentSong].name}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex w-full max-w-[85%] justify-center text-center items-center flex-col overflow-hidden"
+          >
+            <Marquee className="text-xl font-bold">
+              {ctx.songs[ctx.currentSong].name}
+            </Marquee>
+            <Marquee className="text-white/70 mt-1">
+              {ctx.songs[ctx.currentSong].artist}
+            </Marquee>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <div
@@ -119,7 +245,9 @@ const App = () => {
             playCtx={{ playing, setPlaying }}
             sP={setProgress}
             p={progress}
+            duration={Number(musicPlayer.current?.duration)}
             sQ={setShowQueue}
+            c={{ ctx, setCtx }}
           />
         </div>
         <div className="flex justify-around text-white/50 h-20 items-center w-full">
@@ -155,6 +283,8 @@ const CirclePad = ({
   sP,
   sQ,
   p,
+  c,
+  duration,
 }: {
   playCtx: {
     playing: boolean;
@@ -163,6 +293,9 @@ const CirclePad = ({
   sP: React.Dispatch<React.SetStateAction<number>>;
   sQ: React.Dispatch<React.SetStateAction<boolean>>;
   p: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  c: { ctx: typeof ctxSchema; setCtx: any };
+  duration: number;
 }) => {
   const cont = useRef<HTMLDivElement | null>(null);
 
@@ -262,6 +395,18 @@ const CirclePad = ({
       setfired_Levers(newFiredLevs);
       pullTheLever("volumeUp", false);
     }
+
+    if (vy > 69 && !fired_levers[3] && Math.abs(x.get()) < LIMIT) {
+      const newFiredLevs = structuredClone(fired_levers);
+      newFiredLevs[3] = true;
+      setfired_Levers(newFiredLevs);
+      pullTheLever("volumeDown", true);
+    } else if (vy < 69 && fired_levers[3]) {
+      const newFiredLevs = structuredClone(fired_levers);
+      newFiredLevs[3] = false;
+      setfired_Levers(newFiredLevs);
+      pullTheLever("volumeDown", false);
+    }
   });
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -269,6 +414,11 @@ const CirclePad = ({
 
   const lastActiveLever = useRef<string | null>(null);
   const isHoldRef = useRef(false);
+
+  const currentVolumeRef = useRef(c.ctx.volume);
+  useEffect(() => {
+    currentVolumeRef.current = c.ctx.volume;
+  }, [c.ctx.volume]);
 
   useEffect(() => {
     vibrate([40]);
@@ -283,27 +433,46 @@ const CirclePad = ({
       timerRef.current = setTimeout(() => {
         isHoldRef.current = true;
         intervalRef.current = setInterval(() => {
+          const vol = currentVolumeRef.current;
           if (activeIndex === 0) {
             console.log("going forward +10");
           } else if (activeIndex === 1) {
             console.log("going backward -10");
           } else if (activeIndex === 2) {
-            console.log("volume up by +15");
+            const newVol = Math.min(vol + 5, 100);
+            c.setCtx("volume", newVol);
+            currentVolumeRef.current = newVol;
+          } else if (activeIndex === 3) {
+            const newVol = Math.max(vol - 5, 0);
+            c.setCtx("volume", newVol);
+            currentVolumeRef.current = newVol;
           }
-        }, 300);
-      }, 200);
+        }, 150);
+      }, 300);
     } else {
       if (!isHoldRef.current && lastActiveLever.current) {
-        if (lastActiveLever.current === "volumeUp") {
-          sQ(true);
+        if (lastActiveLever.current === "next") {
+          if (c.ctx.currentSong < c.ctx.songs.length - 1)
+            c.setCtx("currentSong", c.ctx.currentSong + 1);
+          else c.setCtx("currentSong", 0);
+        } else if (lastActiveLever.current === "back") {
+          if (c.ctx.currentSong > 0)
+            c.setCtx("currentSong", c.ctx.currentSong - 1);
+          else c.setCtx("currentSong", c.ctx.songs.length - 1);
+        } else if (lastActiveLever.current === "volumeUp") {
+          c.setCtx("volume", Math.min(c.ctx.volume + 15, 100));
+        } else if (lastActiveLever.current === "volumeDown") {
+          c.setCtx("volume", Math.min(c.ctx.volume - 15, 100));
         }
-        console.log(`fn running: ${lastActiveLever.current}`);
+
+        console.log(lastActiveLever.current);
       }
     }
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [levers, sQ]);
 
   const [isDragging, setIsDragging] = useState(false);
@@ -325,7 +494,9 @@ const CirclePad = ({
         </div>
 
         <div className="font-[JetBrains_Mono] bg-white/2 mb-8 border border-white/10 text-sm text-white/50 px-2 rounded-[9px]">
-          {Math.floor(p)}
+          {numberToFormattedTime(Math.round((duration * p) / 100)) +
+            "/" +
+            numberToFormattedTime(Math.floor(duration))}
         </div>
       </div>
       <div className="flex w-full justify-around items-center">

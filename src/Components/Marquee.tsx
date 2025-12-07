@@ -11,6 +11,7 @@ function Marquee({
   const [overflow, setOverflow] = useState(false);
   const contRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
+  const hiddenMeasureRef = useRef<HTMLSpanElement>(null);
   const initialMask =
     "linear-gradient(to right,transparent,black 0%,black 90%,transparent)";
   const [mask, setMask] = useState(initialMask);
@@ -19,13 +20,19 @@ function Marquee({
 
   useEffect(() => {
     let timerId: number = 0;
-    if (contRef.current && textRef.current) {
-      setOverflow(textRef.current.scrollWidth > contRef.current.offsetWidth);
-      timerId = setTimeout(() => {
-        setMask(
-          "linear-gradient(to right,transparent,black 10%,black 90%,transparent)",
-        );
-      }, 3000);
+    if (contRef.current && hiddenMeasureRef.current) {
+      const isOverflowing =
+        hiddenMeasureRef.current.scrollWidth > contRef.current.offsetWidth;
+      setOverflow(isOverflowing);
+
+      if (isOverflowing) {
+        setMask(initialMask);
+        timerId = setTimeout(() => {
+          setMask(
+            "linear-gradient(to right,transparent,black 10%,black 90%,transparent)",
+          );
+        }, 3000);
+      }
     }
     return () => {
       clearTimeout(timerId);
@@ -52,6 +59,13 @@ function Marquee({
         overflow ? "justify-start" : "justify-center"
       }`}
     >
+      <span
+        ref={hiddenMeasureRef}
+        className={`absolute opacity-0 pointer-events-none ${className}`}
+        aria-hidden="true"
+      >
+        {children}
+      </span>
       {overflow ? (
         <motion.div
           className={`flex ${className}`}
