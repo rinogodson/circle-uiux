@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 function Marquee({
   children,
   className,
+  noCenter = false,
 }: {
   children: string;
   className?: string;
+  noCenter?: boolean;
 }) {
   const [overflow, setOverflow] = useState(false);
   const contRef = useRef<HTMLDivElement>(null);
@@ -55,9 +57,7 @@ function Marquee({
       style={{ mask: overflow ? mask : "" }}
       onClick={handleClick}
       key={resetKey}
-      className={`w-full overflow-hidden whitespace-nowrap flex ${
-        overflow ? "justify-start" : "justify-center"
-      }`}
+      className={`w-full overflow-hidden whitespace-nowrap flex justify-start`}
     >
       <span
         ref={hiddenMeasureRef}
@@ -83,7 +83,13 @@ function Marquee({
           <span className="mr-20">{children}</span>
         </motion.div>
       ) : (
-        <span ref={textRef} className={`truncate ${className}`}>
+        <span
+          ref={textRef}
+          style={{
+            textAlign: noCenter ? "start" : "center",
+          }}
+          className={`truncate w-full ${className}`}
+        >
           {children}
         </span>
       )}
