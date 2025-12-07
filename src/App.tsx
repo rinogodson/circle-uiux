@@ -21,6 +21,7 @@ import Marquee from "./Components/Marquee";
 
 import useProvider from "./Hooks/CtxProvider";
 import type ctxSchema from "./Hooks/schemaAndData";
+import Lyrics from "./Components/Lyrics";
 
 const vibrate = (arr: number[]) => {
   if ("vibrate" in navigator) {
@@ -280,6 +281,14 @@ const App = () => {
         className="transition-all duration-200 origin-top w-full h-full flex-col  justify-center items-center flex"
       >
         <div className="h-full w-full justify-center items-center flex">
+          <Lyrics
+            currentTime={
+              musicPlayer.current
+                ? (progress * musicPlayer.current.duration) / 100
+                : 0
+            }
+            lrc={ctx.songs[ctx.currentSong].lyrics}
+          />
           <CirclePad
             playCtx={{ playing, setPlaying }}
             sP={setProgress}
