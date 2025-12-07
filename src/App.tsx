@@ -56,6 +56,7 @@ const numberToFormattedTime = (secs: number) => {
 
 const App = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showQueue, setShowQueue] = useState(false);
 
@@ -243,77 +244,95 @@ const App = () => {
       </div>
 
       <div
-        style={{ scale: showQueue ? 0.9 : 1 }}
-        className="transition-all duration-200 w-full h-fit mt-15 flex-col justify-center items-center gap-8 flex"
+        style={{
+          scale: showQueue ? 0.9 : 1,
+        }}
+        className="transition-all duration-200 w-full h-fit mt-15 flex-col justify-center gap-5 items-center flex"
       >
         <AnimatePresence mode="wait">
           <motion.img
             key={ctx.songs[ctx.currentSong].image}
             initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: playing ? 1 : 0.95 }}
+            animate={{
+              opacity: 1,
+              scale: playing ? (showLyrics ? 1.3 : 1) : showLyrics ? 1.3 : 0.95,
+            }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.1 }}
             src={ctx.songs[ctx.currentSong].image}
-            className="w-[60%] aspect-square border border-white/6 rounded-[15px] shadow-[0_4px_100px_black]"
+            onClick={() => setShowLyrics(!showLyrics)}
+            className="w-[60%] aspect-square border border-white/6 rounded-[15px] origin-top shadow-[0_4px_100px_black]"
           />
         </AnimatePresence>
         <AnimatePresence mode="wait">
-          <motion.div
-            key={ctx.songs[ctx.currentSong].name}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="flex w-full max-w-[85%] justify-center text-center items-center flex-col overflow-hidden"
-          >
-            <Marquee className="text-xl font-bold">
-              {ctx.songs[ctx.currentSong].name}
-            </Marquee>
-            <Marquee className="text-white/70 mt-1">
-              {ctx.songs[ctx.currentSong].artist}
-            </Marquee>
-          </motion.div>
+          {!showLyrics && (
+            <motion.div
+              key={ctx.songs[ctx.currentSong].name}
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: 1,
+              }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, type: "tween" }}
+              className="flex w-full max-w-[85%] justify-center origin-top items-center flex-col overflow-hidden"
+            >
+              <Marquee className="text-xl font-bold">
+                {ctx.songs[ctx.currentSong].name}
+              </Marquee>
+              <Marquee className="text-white/70 mt-1">
+                {ctx.songs[ctx.currentSong].artist}
+              </Marquee>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
       <div
         style={{ scale: showQueue ? 0.9 : 1 }}
-        className="transition-all duration-200 origin-top w-full h-full flex-col  justify-center items-center flex"
+        className="transition-all duration-200 origin-top w-full h-full flex-col justify-center items-center flex"
       >
-        <div className="h-full w-full justify-center items-center flex">
-          <Lyrics
-            currentTime={
-              musicPlayer.current
-                ? (progress * musicPlayer.current.duration) / 100
-                : 0
-            }
-            lrc={ctx.songs[ctx.currentSong].lyrics}
-          />
-          <CirclePad
-            playCtx={{ playing, setPlaying }}
-            sP={setProgress}
-            p={progress}
-            duration={Number(musicPlayer.current?.duration)}
-            sQ={setShowQueue}
-            c={{ ctx, setCtx }}
-          />
+        <div
+          style={{ alignItems: showLyrics ? "end" : "center" }}
+          className="h-full w-full justify-center flex"
+        >
+          {showLyrics ? (
+            <Lyrics
+              currentTime={
+                musicPlayer.current
+                  ? (progress * musicPlayer.current.duration) / 100
+                  : 0
+              }
+              lrc={ctx.songs[ctx.currentSong].lyrics}
+            />
+          ) : (
+            <CirclePad
+              playCtx={{ playing, setPlaying }}
+              sP={setProgress}
+              p={progress}
+              duration={Number(musicPlayer.current?.duration)}
+              sQ={setShowQueue}
+              c={{ ctx, setCtx }}
+            />
+          )}
         </div>
-        <div className="flex justify-around text-white/50 h-20 items-center w-full">
-          <MdHomeFilled className="text-3xl" />
-          <div
-            onClick={() => setShowQueue(!showQueue)}
-            className="flex flex-col justify-center w-50 text-center items-center text-sm"
-          >
-            <span className="text-white/30">Next Up:</span>
-            <Marquee className="text-white/50">
-              {ctx.currentSong === ctx.songs.length - 1
-                ? ctx.songs[0].name
-                : ctx.songs[ctx.currentSong + 1].name}
-            </Marquee>
-          </div>
+        {!showLyrics && (
+          <div className="flex justify-around text-white/50 h-20 items-center w-full">
+            <MdHomeFilled className="text-3xl" />
+            <div
+              onClick={() => setShowQueue(!showQueue)}
+              className="flex flex-col justify-center w-50 text-center items-center text-sm"
+            >
+              <span className="text-white/30">Next Up:</span>
+              <Marquee className="text-white/50">
+                {ctx.currentSong === ctx.songs.length - 1
+                  ? ctx.songs[0].name
+                  : ctx.songs[ctx.currentSong + 1].name}
+              </Marquee>
+            </div>
 
-          <MdSearch className="text-3xl" />
-        </div>
+            <MdSearch className="text-3xl" />
+          </div>
+        )}
       </div>
 
       {!isFullScreen && (
@@ -559,7 +578,10 @@ const CirclePad = ({
   const [isDragging, setIsDragging] = useState(false);
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       ref={cont}
       className="w-[80%] grid overflow-hidden grid-rows-[3.8fr_2.4fr_3.8fr] aspect-square bg-radial from-black to-black/30 backdrop-brightness-150 rounded-full border-2 border-white/10"
     >
@@ -766,7 +788,7 @@ const CirclePad = ({
           />
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

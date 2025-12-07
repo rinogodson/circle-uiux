@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { motion, useSpring } from "motion/react";
 
 interface LyricLine {
   time: number;
@@ -29,8 +29,11 @@ const parseLRC = (lrc: string): LyricLine[] => {
 const Lyrics = ({ currentTime, lrc }: { currentTime: number; lrc: string }) => {
   const [activeLineIndex, setActiveLineIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const lyrics = useMemo(() => parseLRC(lrc), [lrc]);
+
+  const scrollSpring = useSpring(0, { stiffness: 100, damping: 50, mass: 1 });
 
   useEffect(() => {
     const index = lyrics.findIndex((line, i) => {
@@ -47,24 +50,43 @@ const Lyrics = ({ currentTime, lrc }: { currentTime: number; lrc: string }) => {
   }, [currentTime, lyrics]);
 
   useEffect(() => {
-    if (containerRef.current) {
-      const activeElement = containerRef.current.children[
-        activeLineIndex + 1
-      ] as HTMLElement;
+    if (containerRef.current && lineRefs.current[activeLineIndex]) {
+      const container = containerRef.current;
+      const activeLine = lineRefs.current[activeLineIndex];
 
-      if (activeElement) {
-        activeElement.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
+      if (activeLine) {
+        const containerHeight = container.clientHeight;
+        const lineHeight = activeLine.clientHeight;
+        const lineOffsetTop = activeLine.offsetTop;
+
+        const targetScrollTop =
+          lineOffsetTop - containerHeight / 2 + lineHeight / 2;
+
+        scrollSpring.set(targetScrollTop);
       }
     }
-  }, [activeLineIndex]);
+  }, [activeLineIndex, scrollSpring]);
+
+  useEffect(() => {
+    return scrollSpring.on("change", (latest) => {
+      if (containerRef.current) {
+        containerRef.current.scrollTop = latest;
+      }
+    });
+  }, [scrollSpring]);
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, translateY: "100%" }}
+      animate={{ opacity: 1, translateY: "0%" }}
+      transition={{
+        type: "spring",
+        stiffness: 400,
+        damping: 50,
+        mass: 1,
+      }}
       ref={containerRef}
-      className="w-full aspect-9/10 overflow-y-auto scroll-smooth px-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:none]"
+      className="w-full aspect-9/10 overflow-y-auto px-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:none]"
       style={{
         maskImage:
           "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
@@ -72,13 +94,25 @@ const Lyrics = ({ currentTime, lrc }: { currentTime: number; lrc: string }) => {
           "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
       }}
     >
-      <div className="h-[50%]" />
+      <div className="h-10" />
       {lyrics.map((line, index) => {
         const isActive = index === activeLineIndex;
 
         return (
           <motion.div
+            ref={(el) => {
+              lineRefs.current[index] = el;
+            }}
+            layout
             key={index}
+            initial={{
+              opacity: isActive ? 100 : 30,
+              scale: isActive ? 1 : 0.95,
+              filter: isActive ? "blur(0px)" : "blur(1px)",
+              color: isActive
+                ? "rgba(255,255,255,0.9)"
+                : "rgba(255,255,255,0.4)",
+            }}
             animate={{
               opacity: isActive ? 100 : 30,
               scale: isActive ? 1 : 0.95,
@@ -87,6 +121,7 @@ const Lyrics = ({ currentTime, lrc }: { currentTime: number; lrc: string }) => {
                 ? "rgba(255,255,255,0.9)"
                 : "rgba(255,255,255,0.4)",
             }}
+            transition={{ type: "tween" }}
             className={`mb-4 text-left transition-all duration-500 ease-out origin-left`}
           >
             <p
@@ -101,7 +136,7 @@ const Lyrics = ({ currentTime, lrc }: { currentTime: number; lrc: string }) => {
         );
       })}
       <div className="h-[50%]" />
-    </div>
+    </motion.div>
   );
 };
 
