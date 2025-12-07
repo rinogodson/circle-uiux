@@ -22,6 +22,7 @@ import Marquee from "./Components/Marquee";
 import useProvider from "./Hooks/CtxProvider";
 import type ctxSchema from "./Hooks/schemaAndData";
 import Lyrics from "./Components/Lyrics";
+import Tutorial from "./Components/Tutorial";
 
 const vibrate = (arr: number[]) => {
   if ("vibrate" in navigator) {
@@ -59,6 +60,7 @@ const App = () => {
   const [showLyrics, setShowLyrics] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showQueue, setShowQueue] = useState(false);
+  const [showTut, setShowTut] = useState(false);
 
   const [playing, setPlaying] = useState(false);
 
@@ -189,8 +191,42 @@ const App = () => {
     };
   }, [ctx.volume]);
 
+  const [showToast, setToast] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setToast(false);
+    }, 6000);
+    return () => {
+      clearTimeout(id);
+    };
+  }, []);
+
   return (
     <div className="font-[Lexend] relative  bg-[#090909] z-0 sm:h-[800px] flex flex-col justify-between overflow-hidden items-center h-screen w-svw sm:w-auto sm:aspect-384/784 sm:rounded-4xl sm:border-3 border-white/30">
+      <div
+        onClick={() => setShowTut(true)}
+        className="tutorial w-10 aspect-square bg-[#1b1b1b] text-white/70 opacity-50 absolute top-5 right-5 border border-white/30 rounded-full flex justify-center items-center text-2xl"
+      >
+        ?
+      </div>
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              setToast(false);
+            }}
+            className="bg-[#1b1b1b] absolute right-16 top-5 px-3 py-1 border border-white/30 rounded-full"
+          >
+            Need help?
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showTut && <Tutorial sT={setShowTut} />}
+      </AnimatePresence>
       <AnimatePresence mode="sync">
         {showQueue && <Queue c={{ ctx, setCtx }} sQ={setShowQueue} />}
       </AnimatePresence>
@@ -242,7 +278,6 @@ const App = () => {
           className="absolute h-full backdrop-blur-2xl w-full bg-cover bg-center"
         />
       </div>
-
       <div
         style={{
           scale: showQueue ? 0.9 : 1,
@@ -286,7 +321,6 @@ const App = () => {
           )}
         </AnimatePresence>
       </div>
-
       <div
         style={{ scale: showQueue ? 0.9 : 1 }}
         className="transition-all duration-200 origin-top w-full h-full flex-col justify-center items-center flex"
@@ -334,7 +368,6 @@ const App = () => {
           </div>
         )}
       </div>
-
       {!isFullScreen && (
         <div className="bg-[#090909] h-screen w-screen flex absolute z-199 justify-center items-center sm:hidden">
           <button
