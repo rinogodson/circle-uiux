@@ -9,6 +9,7 @@ import {
 } from "motion/react";
 import {
   MdDownload,
+  MdFavorite,
   MdFavoriteBorder,
   MdHomeFilled,
   MdRepeat,
@@ -135,6 +136,7 @@ const App = () => {
 
   useEffect(() => {
     let id = 0;
+    if (musicPlayer.current) musicPlayer.current.volume = ctx.volume / 100;
     if (renderPassed.current) {
       renderPassed.current = false;
     } else {
@@ -420,6 +422,11 @@ const CirclePad = ({
     currentVolumeRef.current = c.ctx.volume;
   }, [c.ctx.volume]);
 
+  const currentTime = useRef(p);
+  useEffect(() => {
+    currentTime.current = p;
+  }, [p]);
+
   useEffect(() => {
     vibrate([40]);
     const leverNames = ["next", "back", "volumeUp", "volumeDown"];
@@ -434,10 +441,26 @@ const CirclePad = ({
         isHoldRef.current = true;
         intervalRef.current = setInterval(() => {
           const vol = currentVolumeRef.current;
+          const pro = currentTime.current;
+
           if (activeIndex === 0) {
             console.log("going forward +10");
+            const realProgress = (pro * duration) / 100;
+            const newPro = realProgress + 5;
+            const hundredPro = (newPro * 100) / duration;
+            if (hundredPro <= 100) {
+              sP(hundredPro);
+              currentTime.current = hundredPro;
+            }
           } else if (activeIndex === 1) {
             console.log("going backward -10");
+            const realProgress = (pro * duration) / 100;
+            const newPro = realProgress - 5;
+            const hundredPro = (newPro * 100) / duration;
+            if (hundredPro <= 100) {
+              sP(hundredPro);
+              currentTime.current = hundredPro;
+            }
           } else if (activeIndex === 2) {
             const newVol = Math.min(vol + 5, 100);
             c.setCtx("volume", newVol);
@@ -646,7 +669,24 @@ const CirclePad = ({
         </svg>
         <div className="absolute w-full flex translate-y-1 justify-center items-center h-full text-4xl text-white/40 gap-7">
           <MdRepeat className="-translate-y-5" />
-          <MdFavoriteBorder />
+          <div
+            style={{
+              color: c.ctx.songs[c.ctx.currentSong].fav
+                ? "rgba(255,255,255,0.8)"
+                : "rgba(255,255,255,0.4)",
+            }}
+            onClick={() => {
+              const neoArr = structuredClone(c.ctx.songs);
+              neoArr[c.ctx.currentSong].fav = !neoArr[c.ctx.currentSong].fav;
+              c.setCtx("songs", neoArr);
+            }}
+          >
+            {c.ctx.songs[c.ctx.currentSong].fav ? (
+              <MdFavorite />
+            ) : (
+              <MdFavoriteBorder />
+            )}
+          </div>
           <MdDownload className="-translate-y-5" />
         </div>
       </div>
