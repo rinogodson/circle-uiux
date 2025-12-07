@@ -28,6 +28,22 @@ const vibrate = (arr: number[]) => {
   }
 };
 
+async function downloadFileFromUrl(url: string, filename: string) {
+  const response = await fetch(url);
+  const blob = await response.blob();
+
+  const blobUrl = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(blobUrl);
+}
+
 const numberToFormattedTime = (secs: number) => {
   if (Number.isNaN(secs)) return "-";
   const minutes = Math.floor(secs / 60);
@@ -85,7 +101,6 @@ const App = () => {
     musicPlayer.current.addEventListener("timeupdate", handleTimeUpdate);
     musicPlayer.current.addEventListener("play", handlePlay);
     musicPlayer.current.addEventListener("pause", handlePause);
-    musicPlayer.current.addEventListener("ended", handlePause);
 
     const handlerfn = () => {
       if (!document.fullscreenElement) {
@@ -100,16 +115,38 @@ const App = () => {
         musicPlayer.current.removeEventListener("timeupdate", handleTimeUpdate);
         musicPlayer.current.removeEventListener("play", handlePlay);
         musicPlayer.current.removeEventListener("pause", handlePause);
-        musicPlayer.current.removeEventListener("ended", handlePause);
       }
     };
   }, []);
 
   useEffect(() => {
     if (!musicPlayer.current) return;
-    musicPlayer.current.pause();
+    const handleEnded = () => {
+      if (!musicPlayer.current) return;
+      if (ctx.repeat) {
+        setProgress(0);
+        musicPlayer.current.play().then(() => {
+          setPlaying(true);
+        });
+        return;
+      }
+      if (ctx.currentSong < ctx.songs.length - 1)
+        setCtx("currentSong", ctx.currentSong + 1);
+      else setCtx("currentSong", 0);
+    };
+    musicPlayer.current.addEventListener("ended", handleEnded);
+    return () => {
+      if (!musicPlayer.current) return;
+      musicPlayer.current.removeEventListener("ended", handleEnded);
+    };
+  }, [ctx.currentSong, ctx.repeat, ctx.songs.length, setCtx]);
+
+  useEffect(() => {
+    if (!musicPlayer.current) return;
     musicPlayer.current.src = ctx.songs[ctx.currentSong].song;
-    musicPlayer.current.play();
+    musicPlayer.current.play().then(() => {
+      setPlaying(true);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx.currentSong]);
 
@@ -212,7 +249,7 @@ const App = () => {
           <motion.img
             key={ctx.songs[ctx.currentSong].image}
             initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            animate={{ opacity: 1, scale: playing ? 1 : 0.95 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.1 }}
             src={ctx.songs[ctx.currentSong].image}
@@ -256,10 +293,14 @@ const App = () => {
           <MdHomeFilled className="text-3xl" />
           <div
             onClick={() => setShowQueue(!showQueue)}
-            className="flex flex-col justify-center text-center items-center text-sm"
+            className="flex flex-col justify-center w-50 text-center items-center text-sm"
           >
             <span className="text-white/30">Next Up:</span>
-            <span className="text-white/50">Kesariya (Lofi Flip)</span>
+            <Marquee className="text-white/50">
+              {ctx.currentSong === ctx.songs.length - 1
+                ? ctx.songs[0].name
+                : ctx.songs[ctx.currentSong + 1].name}
+            </Marquee>
           </div>
 
           <MdSearch className="text-3xl" />
@@ -427,6 +468,8 @@ const CirclePad = ({
     currentTime.current = p;
   }, [p]);
 
+  const restarted = useRef(false);
+
   useEffect(() => {
     vibrate([40]);
     const leverNames = ["next", "back", "volumeUp", "volumeDown"];
@@ -479,9 +522,15 @@ const CirclePad = ({
             c.setCtx("currentSong", c.ctx.currentSong + 1);
           else c.setCtx("currentSong", 0);
         } else if (lastActiveLever.current === "back") {
-          if (c.ctx.currentSong > 0)
-            c.setCtx("currentSong", c.ctx.currentSong - 1);
-          else c.setCtx("currentSong", c.ctx.songs.length - 1);
+          if (restarted.current) {
+            if (c.ctx.currentSong > 0)
+              c.setCtx("currentSong", c.ctx.currentSong - 1);
+            else c.setCtx("currentSong", c.ctx.songs.length - 1);
+            restarted.current = false;
+          } else {
+            sP(0);
+            restarted.current = true;
+          }
         } else if (lastActiveLever.current === "volumeUp") {
           c.setCtx("volume", Math.min(c.ctx.volume + 15, 100));
         } else if (lastActiveLever.current === "volumeDown") {
@@ -668,7 +717,15 @@ const CirclePad = ({
           </g>
         </svg>
         <div className="absolute w-full flex translate-y-1 justify-center items-center h-full text-4xl text-white/40 gap-7">
-          <MdRepeat className="-translate-y-5" />
+          <MdRepeat
+            onClick={() => c.setCtx("repeat", !c.ctx.repeat)}
+            style={{
+              color: c.ctx.repeat
+                ? "rgba(255,255,255,0.8)"
+                : "rgba(255,255,255,0.4)",
+            }}
+            className="-translate-y-5"
+          />
           <div
             style={{
               color: c.ctx.songs[c.ctx.currentSong].fav
@@ -687,7 +744,17 @@ const CirclePad = ({
               <MdFavoriteBorder />
             )}
           </div>
-          <MdDownload className="-translate-y-5" />
+          <MdDownload
+            onClick={() => {
+              downloadFileFromUrl(
+                c.ctx.songs[c.ctx.currentSong].song,
+                c.ctx.songs[c.ctx.currentSong].name +
+                  " - " +
+                  c.ctx.songs[c.ctx.currentSong].artist,
+              );
+            }}
+            className="-translate-y-5"
+          />
         </div>
       </div>
     </div>
